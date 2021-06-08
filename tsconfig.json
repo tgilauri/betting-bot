@@ -1,8 +1,13 @@
 {
   "compilerOptions": {
+    "outDir": "dist",
+    "baseUrl": "./src",
     "module": "commonjs",
-    "target": "esnext",
-    "sourceMap": false
+    "target": "ES2019",
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true
   },
   "exclude": [
     "node_modules"
