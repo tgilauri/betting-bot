@@ -1,0 +1,26 @@
+{
+  "name": "betting-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "string-similarity": "^4.0.4"
+  },
+  "devDependencies": {
+    "typescript": "^4.3.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tgilauri/betting-bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tgilauri/betting-bot/issues"
+  },
+  "homepage": "https://github.com/tgilauri/betting-bot#readme"
+}
