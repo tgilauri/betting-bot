@@ -7,7 +7,7 @@ const toUpperFormat = format(info => {
 });
 
 export const logger = createLogger({
-  level: config.LOG_LEVEL,
+  level: config.LOG_LEVEL ?? 'info',
   transports: [
     new transports.Console({
       format: format.combine(
