@@ -1,10 +1,11 @@
 import puppeteer from 'puppeteer';
-import {pages} from "./pages";
+import {pages} from "./config/pages";
 import {Companies} from "./types";
-import {getForks, logPairs} from "./services/pairs";
+import {getForks} from "./services/pairs";
 import {getPairsForPage} from "./services/browser";
-import {parseFonbetTennisPairs} from "./services/fonbet";
-import {parseMarathonTennisPairs} from "./services/marathon";
+import {parseFonbetTennisPairs} from "./parsers/fonbet";
+import {parseMarathonTennisPairs} from "./parsers/marathon";
+import {logger} from "./services/logger";
 
 const parseFonbetPairs = getPairsForPage(parseFonbetTennisPairs);
 const parseMarathonPairs = getPairsForPage(parseMarathonTennisPairs);
@@ -22,8 +23,11 @@ async function main() {
     parseFonbetPairs(browser, pages[Companies.FONBET].tennis)
   ]);
 
-  logPairs('MARATHON', marathonPairs);
-  logPairs('FONBET', fonbetPairs);
+  logger.info(`marathon pairs: ${Object.keys(marathonPairs).length}`);
+  logger.info(`fonbet pairs: ${Object.keys(fonbetPairs).length}`);
+
+  //logPairs('MARATHON', marathonPairs);
+  //logPairs('FONBET', fonbetPairs);
 
   browser.close();
 

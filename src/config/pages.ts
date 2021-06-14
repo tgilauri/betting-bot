@@ -1,4 +1,4 @@
-import {Companies, Pages, Sports} from "./types";
+import {Companies, Pages, Sports} from "../types";
 
 export const pages: Pages = {
   [Companies.MARATHON]: {

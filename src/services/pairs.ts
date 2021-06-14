@@ -1,67 +1,114 @@
 import strSim from "string-similarity";
 import {logger} from "./logger";
-import {MAX_BID} from "../constants";
-import {Member, Pair, Pairs} from "../types";
+import {Company, ForkPair, Member, Pair, Pairs} from "../types";
+import {MAX_BID, MIN_MATCH_RATING, MIN_MATCH_THRESHOLD} from "../constants";
+import {prepareFullName} from "./utils";
 
-export const findPair = (pairs: Pairs, pairName: string, pairsToFindMatch: string[]): Pair | undefined => {
-  const matchedName = strSim.findBestMatch(pairName, pairsToFindMatch).bestMatch.target;
+export const createPair = (company: Company, fullName: string, prices: number[]): Pair => {
+  const names = fullName.split(' - ').map(name => name.trim());
 
-  return pairs[matchedName];
+  const [firstName, secondName] = names;
+  const [firstPrice, secondPrice] = prices;
+  const firstMember = {
+    name: firstName,
+    price: firstPrice,
+    company: company
+  };
+
+  const secondMember = {
+    name: secondName,
+    price: secondPrice,
+    company: company
+  }
+
+  const [smaller, bigger] = [firstMember, secondMember].sort((a, b) => (a.price < b.price ? -1 : 1));
+
+  return {
+    fullName,
+    members: {
+      smaller,
+      bigger
+    }
+  } as Pair;
 }
 
-export const getBiggerPriceMember = (m1: Member, m2: Member): Member => {
-  return m1.price > m2.price ? m1 : m2;
+export const isForkExists = (price1: number, price2: number) => {
+  return ((1 / price1) + (1 / price2)) < 1;
 }
 
-export const getSmallerPriceMember = (m1: Member, m2: Member): Member => {
-  return m1.price < m2.price ? m1 : m2;
+export const findForkPair = (firstPair: Pair, secondPair: Pair): ForkPair | undefined => {
+  const {smaller: firstBetSmaller, bigger: firstBetBigger} = firstPair.members;
+  const {smaller: secondBetSmaller, bigger: secondBetBigger} = secondPair.members;
+
+  if (isForkExists(firstBetSmaller.price, secondBetBigger.price)) {
+    return {
+      smaller: firstBetSmaller,
+      bigger: secondBetBigger
+    }
+  }
+  if (isForkExists(secondBetSmaller.price, firstBetBigger.price)) {
+    return {
+      smaller: secondBetSmaller,
+      bigger: firstBetBigger
+    }
+  }
 }
+
+export const findPairName = (pair: Pair, pairsToFindMatch: string[]): string => {
+  const possibleMatches = Object.values(pair.members)
+      .map(member => {
+        return strSim.findBestMatch(member.name, pairsToFindMatch);
+      })
+      .sort((a, b) => a.bestMatch.rating > b.bestMatch.rating ? -1 : 1);
+
+  if (possibleMatches.length > 0) {
+    const minMatch = possibleMatches[possibleMatches.length - 1];
+
+    if (minMatch.bestMatch.rating > MIN_MATCH_THRESHOLD) {
+      return possibleMatches.find(match => match.bestMatch.rating >= MIN_MATCH_RATING)?.bestMatch.target;
+    }
+  }
+}
+
+export const getMinBid = (smallerPriceMember: Member, biggerPriceMember: Member) => {
+  return (smallerPriceMember.price * MAX_BID) / biggerPriceMember.price;
+}
+
+export const createForkPair = (smallerPriceMember: Member, biggerPriceMember: Member, minBid: number) => {
+  return {
+    minBid,
+    smallerBid: {
+      bid: minBid,
+      name: biggerPriceMember.name,
+      company: biggerPriceMember.company,
+    },
+    biggerBid: {
+      bid: MAX_BID,
+      name: smallerPriceMember.name,
+      company: smallerPriceMember.company,
+    }
+  }
+
+}
+
 
 export const getForks = (firstBetPairs: Pairs, secondBetPairs: Pairs) => {
-  const secondBetPairsNames = Object.keys(secondBetPairs);
+  const secondBetPairsNames = Object.keys(secondBetPairs).map(prepareFullName);
 
-  return Object.values(firstBetPairs).reduce((result, pair) => {
-    const {first: firstBetFirstMember, second: firstBetSecondMember} = pair.members;
+  return Object.values(firstBetPairs).reduce((result, firstBetPair) => {
+    const secondBetPairName = findPairName(firstBetPair, secondBetPairsNames);
 
-    const matchedSecondBetPair = findPair(secondBetPairs, pair.fullName, secondBetPairsNames);
+    if (secondBetPairName) {
+      const secondBetPair = secondBetPairs[secondBetPairName];
 
-    if (!matchedSecondBetPair) {
-      return result;
-    }
+      const forkPair = findForkPair(firstBetPair, secondBetPair);
 
-    const {first: secondBetFirstMember, second: secondBetSecondMember} = matchedSecondBetPair.members;
-
-    const isFirstBetFirstToSecondBetSecondForkExist = (1 / firstBetFirstMember.price + 1 / secondBetSecondMember.price) < 0;
-    const isFirstBetSecondToSecondBetFirstForkExist = (1 / firstBetSecondMember.price + 1 / secondBetFirstMember.price) < 0;
-
-    let biggerPriceMember;
-    let smallerPriceMember;
-
-    if (isFirstBetFirstToSecondBetSecondForkExist) {
-      biggerPriceMember = getBiggerPriceMember(firstBetFirstMember, secondBetSecondMember);
-      smallerPriceMember = getSmallerPriceMember(firstBetFirstMember, secondBetSecondMember);
-    } else if (isFirstBetSecondToSecondBetFirstForkExist) {
-      biggerPriceMember = getBiggerPriceMember(firstBetSecondMember, secondBetFirstMember);
-      smallerPriceMember = getSmallerPriceMember(firstBetSecondMember, secondBetFirstMember);
-    } else {
-      return result;
-    }
-
-    const minBid = (smallerPriceMember.price * MAX_BID) / biggerPriceMember.price;
-
-    result[pair.fullName] = {
-      minBid,
-      smallerBid: {
-        bid: minBid,
-        name: biggerPriceMember.name,
-        company: biggerPriceMember.company,
-      },
-      biggerBid: {
-        bid: MAX_BID,
-        name: smallerPriceMember.name,
-        company: smallerPriceMember.company,
+      if (forkPair) {
+        const minBid = getMinBid(forkPair.smaller, forkPair.bigger);
+        result[firstBetPair.fullName] = createForkPair(forkPair.smaller, forkPair.bigger, minBid);
       }
     }
+
     return result;
   }, {});
 }

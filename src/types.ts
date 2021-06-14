@@ -31,8 +31,8 @@ export type Pairs = Record<string, Pair>;
 export interface Pair {
   fullName: string;
   members: {
-    first: Member
-    second: Member;
+    smaller: Member
+    bigger: Member;
   }
 }
 
@@ -46,6 +46,11 @@ export interface Ellipsis {
   content: {
     text: string
   }
+}
+
+export interface ForkPair {
+  smaller: Member;
+  bigger: Member;
 }
 
 export type Parser = ($: CheerioAPI) => Promise<Pairs>;
